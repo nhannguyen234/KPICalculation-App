@@ -1,15 +1,21 @@
 """
 Created by Nguyen Le Nhan PS/EVI-VN
-Updated date: 30 March 2023
+Updated date: 9 November 2023
 """
+import os
 from tkinter import *
 from tkinter import messagebox, ttk
 from data_processing import *
 from KPI_buttons import *
 import json
 
+cwdPath = os.getcwd()
+print(cwdPath)
 
-json_path = 'layout.json'
+version = '0.6.2'
+version_KPI = '1.1'
+json_path = get_rightPath(cwdPath, 'layout.json')
+print(json_path)
 layout_info = json.load(open(json_path))
 
 div = layout_info['window'][0]['main']['div']
@@ -19,13 +25,13 @@ convert_btn_canvas = div[2]['convert_button']
 
 
 window = Tk()
-window.title('VVV-KPI Calculation-v0.5')
-window.iconbitmap('kpi.ico')
+window.title('VVV-KPI Calculation-v'+str(version))
+window.iconbitmap(get_rightPath(cwdPath, 'kpi.ico'))
 frame = Frame(window, relief='sunken')
 frame.pack()
 
 #Data Conversion
-data_conversion = LabelFrame(frame, text='Data conversion v0.5', font=('Arial Bolt',14))
+data_conversion = LabelFrame(frame, text='Data conversion', font=('Arial Bolt',14))
 data_conversion.grid(row=1, column=0, sticky='news',padx=20, pady=10)
 
 #Canvas widget
@@ -232,7 +238,7 @@ def complex_component_option():
             messagebox.showerror(title='Error', message='Please choose at least 1 complex component')
 
     def merge_function(complex_component,
-                    check_var):
+                        check_var):
         if check_var.get()!=0:
             check_var_all.set(1)
             select_all(complex_component, check_var_all)
@@ -277,10 +283,13 @@ def convert_button_fn():
     sim_path_str = sim_paths.get()
     meas_path_str = mea_paths.get()
     merge_inp_str = merge_inp.get()
-    if sim_path_str != '':
+    # print(type(merge_inp_str))
+    varmea_str = varmea.get()
+    varsim_str = varsim.get()
+    if sim_path_str != '' and varsim_str == 1:
         expand_data_SIM(sim_path_str)
     
-    if meas_path_str != '':
+    if meas_path_str != '' and varmea_str == 1:
         extract_TF_frommeas(merge_inp_str,
                             meas_path_str, 
                             name_measurement_file.get(), 
@@ -297,14 +306,14 @@ def KPI_checkbox(var, KPI_btn):
         KPI_btn.config(state='normal')
 
 #KPI calculation
-KPI_buttons = LabelFrame(frame, text='KPI Calculation Function v1.0-beta', font=('Arial Bolt',14))
+KPI_buttons = LabelFrame(frame, text='KPI Calculation Function v'+str(version_KPI), font=('Arial Bolt',14))
 KPI_buttons.grid(row=0, column=0,padx=20, pady=20)
 #KPI1 button is disabled
 KPI1_button = Button(KPI_buttons, 
                      text='KPI1 Calculation',
                      width=13, 
                      command=KPI1, 
-                     bg='cyan')
+                     bg='white')
 KPI1_button.grid(row=1, column=0, padx=10, pady=5)
 KPI1_button.config(state='disabled')
 #KPI2 button is enabled
@@ -314,14 +323,14 @@ KPI2_button = Button(KPI_buttons,
                      command=KPI2, 
                      bg='cyan')
 KPI2_button.grid(row=1, column=1, padx=10, pady=5)
-#KPI3 button is disabled
+#KPI3 button is enabled
 KPI3_button = Button(KPI_buttons, 
-                     text='KPI3 Calculation',
+                     text='KPI3* Calculation',
                      width=13, 
                      command=KPI3, 
                      bg='cyan')
 KPI3_button.grid(row=1, column=2, padx=10, pady=5)
-KPI3_button.config(state='disabled')
+KPI3_button.config(state='normal')
 
 #file browse
 paths_mea = StringVar()
@@ -374,7 +383,7 @@ name_meas_frame.grid(row=measurement_canvas['frame_project_naming']['row'],
                     sticky=measurement_canvas['frame_project_naming']['sticky'], 
                     padx=5, pady=5)
 name_measurement_file = ttk.Combobox(name_meas_frame, 
-                                    values=['PAG_LK3_Gosa'
+                                    values=['PAG_LK2_Gosa',
                                             'PAG_LK3_C1', 
                                             'PAG_Taycan', 
                                             'Daimler_CV',
@@ -404,15 +413,15 @@ dirs_name_option()
 varmea = IntVar(value=1)
 varsim = IntVar(value=1)
 mea_canvas_status = Checkbutton(canvas_mea, text='MEASUREMENT FILES PATH', variable=varmea,
-                            command=lambda e=mea_paths,
-                                            b=mea_browse, 
-                                            p=name_measurement_file,
-                                            v=varmea: naccheck(e,b,'meas',p,v))
+                                command=lambda e=mea_paths,
+                                                b=mea_browse, 
+                                                p=name_measurement_file,
+                                                v=varmea: naccheck(e,b,'meas',p,v))
 sim_canvas_status = Checkbutton(canvas_sim, text='SIMULATION FILES PATH', variable=varsim,
-                            command=lambda e=sim_paths,
-                                            b=sim_browse, 
-                                            p=None, 
-                                            v=varsim: naccheck(e,b,'sim',p,v))
+                                command=lambda e=sim_paths,
+                                                b=sim_browse, 
+                                                p=None, 
+                                                v=varsim: naccheck(e,b,'sim',p,v))
 
 mea_canvas_status.grid(row=measurement_canvas['toggle']['row'], 
                         column=measurement_canvas['toggle']['column'], 

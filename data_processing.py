@@ -1,6 +1,6 @@
 """
-Created by Nguyen Le Nhan 
-Updated date: 29 March 2023
+Created by Nguyen Le Nhan PS/EVI-VN
+Updated date: 9 November 2023
 """
 import os 
 import re
@@ -10,13 +10,17 @@ import pandas as pd
 from tkinter import messagebox
 
 def find_sensor(df_path):
+    """
+        to match sensor name between simulation naming and measurement naming
+        focus on output sensor with format M{digit}_{digit}_{digit}, for e.g: M4_1_14
+    """
     combined_string = ''.join(df_path)
     pattern = r'M[-_]*\d+[-_]*\d+[-_]*\d*'
     empty, underscore = '', '_'
     matches = re.findall(pattern, combined_string)
     # replace characters to the consistent format
     subs_string_list = list(dict.fromkeys(['M' + re.sub(r'M[-_]*', empty, s) for s in matches]))
-    subs_string_list = [re.sub(r'[\-]+', underscore, s) for s in subs_string_list]
+    subs_string_list = [re.sub(r'[\-]+', underscore, s[:-1]) if '-1' in s[-2:] else re.sub(r'[\-]+', underscore, s) for s in subs_string_list]
     return subs_string_list
 
 # def seq_column(df):
@@ -80,11 +84,9 @@ def extract_TF_frommeas(merge,
                                             name +'_' + direction + '_measurement_converted' + '_' + complex_component + '.csv')
                 csv_file_list.append(new_file_path)
                 df_final.to_csv((new_file_path), index=False)
-            except:
+            except Exception as exp:
                 messagebox.showerror(title='Error', 
-                                     message='Please close file ' + os.path.join(os.path.dirname(file), 
-                                     name +'_' + direction + '_measurement_converted' + '_' + complex_component + '.csv'))
-                raise Exception
+                                     message=exp)
         if merge == 1:
             merged_csv(csv_file_list)
 
@@ -133,34 +135,46 @@ def expand_data_SIM(files):
                 continue
         try:
             df_final.to_csv(file.split('.')[0] + '_sim_converted.csv', index=False)
-        except:
-            messagebox.showerror(title='Error', message='Please close file ' + file.split('.')[0] + '_sim_converted.csv')
-            raise Exception
+        except Exception as exp:
+            messagebox.showerror(title='Error', 
+                                 message=exp)
 
 def merged_csv(csv_file_list):
     """Merge all components data to one file name with suffixed 'merged' """
     files_path = csv_file_list
+    # print(files_path)
     specific_order = ['real', 'imaginary', 'magnitude']
     order = {key: i for i, key in enumerate(specific_order)}
     #create a new list with specific order
-    new_file_paths = sorted(files_path, key=lambda files_path: order[files_path.split('_')[-1].split('.')[0]])
+    new_file_paths = sorted(files_path, key=lambda files_path: order[files_path.split('_')[-1].split('.csv')[0]])
 
     #inititate a dataframe for merge dataframe
     df_final = pd.read_csv(new_file_paths[0])\
                  .set_index(['f[Hz]'])\
-                 .add_suffix('_' + os.path.basename(new_file_paths[0]).split('_')[-1].split('.')[0])
+                 .add_suffix('_' + os.path.basename(new_file_paths[0]).split('_')[-1].split('.csv')[0])
 
     for i in range(1,len(new_file_paths)):
-        globals()['df_' + os.path.basename(new_file_paths[i]).split('.')[0]] = pd.read_csv(new_file_paths[i])\
+        globals()['df_' + os.path.basename(new_file_paths[i]).split('.csv')[0]] = pd.read_csv(new_file_paths[i])\
                                                                                   .set_index(['f[Hz]'])\
-                                                                                  .add_suffix('_' + os.path.basename(new_file_paths[i]).split('_')[-1].split('.')[0])
+                                                                                  .add_suffix('_' + os.path.basename(new_file_paths[i]).split('_')[-1].split('.csv')[0])
         df_final = df_final.merge(globals()['df_' + os.path.basename(new_file_paths[i]).split('.')[0]], 
                                   how='inner',
                                   on='f[Hz]')
+        print(df_final)
     try:
-        df_final.to_csv('_'.join(new_file_paths[0].split('.')[0].split('_')[:-1]) + '_merged.csv', index=False)
-    except:
+        df_final.to_csv('_'.join(files_path[0].split('.')[0].split('_')[:-1]) + '_merged.csv')
+    except Exception as exp:
         messagebox.showerror(title='Error', 
-                            message='Please close file ' + '_'.join(new_file_paths[0].split('.')[0].split('_')[:-1]) + '_merged.csv')
-        raise Exception
+                            message=exp)
     
+def get_rightPath(cwdpath, filename):
+    #get right path contains filename
+    for _ in range(10): #10 is the max number of subfolders
+        os.chdir(cwdpath)
+        if not os.path.exists(filename):
+            os.chdir('../')
+            cwdpath = os.getcwd()
+        else:
+            cwdpath = os.getcwd()
+            break
+    return os.path.join(cwdpath, filename)
